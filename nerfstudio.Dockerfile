@@ -43,8 +43,6 @@ RUN apt-get update && \
         libcgal-dev \
         libceres-dev \
         python3.10-dev \
-  	nvidia-cuda-toolkit \
-	nvidia-cuda-toolkit-gcc \
         python3-pip
 
 # Build and install CMake
@@ -56,11 +54,6 @@ RUN wget https://github.com/Kitware/CMake/releases/download/v3.31.3/cmake-3.31.3
     && rm /tmp/cmake-install.sh \
     && ln -s /opt/cmake-3.31.3/bin/* /usr/local/bin
     
-RUN apt-get install gcc-10 g++-10
-
-ENV CC=/usr/bin/gcc-10
-ENV CXX=/usr/bin/g++-10
-ENV CUDAHOSTCXX=/usr/bin/g++-10
 
 # Build and install GLOMAP.
 RUN git clone https://github.com/colmap/glomap.git && \
@@ -74,15 +67,26 @@ RUN git clone https://github.com/colmap/glomap.git && \
     ninja install -j1 && \
     cd ~
 
+RUN apt-get install -y --no-install-recommends --no-install-suggests \
+	gcc-10 \
+	g++-10 \
+	libcgal-qt5-dev \
+  	nvidia-cuda-toolkit \
+	nvidia-cuda-toolkit-gcc
+
+ENV CC=/usr/bin/gcc-10
+ENV CXX=/usr/bin/g++-10
+ENV CUDAHOSTCXX=/usr/bin/g++-10
 # Build and install COLMAP.
 RUN git clone https://github.com/colmap/colmap.git && \
     cd colmap && \
-    git checkout "3.9.1" && \
     mkdir build && \
     cd build && \
     mkdir -p /build && \
     cmake .. -GNinja "-DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCHITECTURES}" \
-        -DCMAKE_INSTALL_PREFIX=/build/colmap && \
+        -DCMAKE_INSTALL_PREFIX=/build/colmap \
+	-DCMAKE_CUDA_COMPILER=/usr/bin/nvcc \
+	-DCMAKE_CUDA_HOST_COMPILER=/usr/bin/g++-10 && \
     ninja install -j1 && \
     cd ~
 
